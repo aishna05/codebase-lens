@@ -216,3 +216,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Env overrides (keep .env.example)
+backend/.env
+frontend/.env
+*.env.local
+
+# OS
+.DS_Store
+Thumbs.db
