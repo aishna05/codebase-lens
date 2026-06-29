@@ -1,6 +1,9 @@
 # Codebase Lens — Frontend
 
-React + Vite frontend for the Codebase Lens platform. Lets users drop a GitHub URL, select which features they want, and view AI-generated analysis in a clean two-column layout.
+React + Vite frontend for Codebase Lens. Supports two modes:
+
+- **GitHub Repo** — paste a URL, get AI-generated summary, workflow analysis, and a chat interface
+- **Local Scan** — paste a directory path, get an interactive React Flow dependency graph with click-to-explain
 
 ---
 
@@ -12,13 +15,13 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-Make sure the backend is running on `http://localhost:8001` (or set `VITE_API_URL` in a `.env` file).
+Backend must be running on `http://localhost:8001` (or set `VITE_API_URL`).
 
 ---
 
 ## Environment Variables
 
-Create `frontend/.env` (already gitignored):
+Create `frontend/.env` (gitignored):
 
 ```env
 VITE_API_URL=http://localhost:8001
@@ -32,38 +35,49 @@ Defaults to `http://localhost:8001` if not set.
 
 ### `/` — Home
 
-- Logo + dark/light toggle in navbar
-- Centered headline: **"Drop your URL"** / **"Get the full context"**
-- URL input — accepts `https://github.com/owner/repo` or `owner/repo` shorthand
-- Three selectable feature boxes: **Summary**, **Workflow**, **Ask / Chat**
-  - At least one must stay selected at all times
-  - Selection is passed to the analysis page via query params (`?features=summary,workflow,chat`)
-- Analyze button — validates URL then navigates to `/analysis`
+- Mode toggle: **GitHub Repo** / **Local Scan**
+- **GitHub mode:** URL input (`https://github.com/owner/repo` or `owner/repo`), feature selector (Summary / Workflow / Ask Chat), Analyze button → navigates to `/analysis`
+- **Local mode:** absolute path input, Scan & Visualise button → navigates to `/graph`
 
-### `/analysis` — Analysis
+### `/analysis` — GitHub Analysis
 
-- Top bar: GitHub repo URL (left) + theme toggle + Chat button (right)
-- Two-column box grid showing results for the selected features
-  - **Summary box** — purpose, tech stack badges, key features list
-  - **Workflow box** — architecture pattern, entry points, data flow
-- Each box has its own loading spinner and error state
-- **Chat panel** — slides in from the right when Chat is clicked
-  - Full conversation with the codebase, powered by `/api/chat`
-  - Shows cited file references under each assistant response
+- Top bar: back arrow, repo slug, Ready badge, theme toggle, Chat button
+- Two-column card grid for selected features:
+  - **Summary card** — purpose prose, tech stack badges, key features list
+  - **Workflow card** — architecture pattern badge, entry points, data flow description
+- Each card has a loading spinner and error state
+- **Chat panel** — slides in from the right
+  - Full conversation against the repo, powered by `/api/chat`
+  - Shows cited file paths under each assistant reply
   - Backdrop click or ✕ closes it
+
+### `/graph` — Local Dependency Graph
+
+- Full-screen **React Flow** canvas
+- Nodes auto-arranged with **dagre** (left-to-right dependency ranking)
+- **File nodes**: filename, language badge (colour-coded), lines of code count — fully draggable
+- **Edges**: smooth-step arrows from importer to imported file
+- **Minimap** (bottom-right) and **zoom controls** (bottom-left)
+- **Click any node** → Explain panel slides in from the right:
+  - File name, language, LoC, size
+  - Relative path
+  - AI-generated 3-sentence plain-English explanation (Groq / Llama)
+  - Click backdrop or ✕ to close
 
 ---
 
 ## Tech Stack
 
-| Tool | Version | Why |
+| Tool | Version | Purpose |
 |---|---|---|
-| React | 18 | Component model, hooks |
+| React | 19 | Component model, hooks |
 | Vite | 8 | Fast dev server, ESM-native build |
-| React Router | v6 | Client-side routing |
-| Tailwind CSS | v3 | Utility-first, dark mode via `class` strategy |
-| Axios | 1.x | HTTP client, 120s timeout for slow analysis calls |
-| Lucide React | 0.4x | Icon set |
+| React Router | v7 | Client-side routing (`/`, `/analysis`, `/graph`) |
+| Tailwind CSS | v3 | Utility-first styling, dark mode via `class` strategy |
+| `@xyflow/react` | 12 | React Flow — interactive graph canvas |
+| `@dagrejs/dagre` | — | Automatic graph layout (left-to-right, ranked) |
+| Axios | 1.x | HTTP client, 120s timeout |
+| Lucide React | 1.x | Icon set |
 
 ---
 
@@ -71,51 +85,25 @@ Defaults to `http://localhost:8001` if not set.
 
 ```
 frontend/
-├── index.html                  # Sets <html class="dark"> — dark mode default
+├── index.html                     # Sets <html class="dark"> — dark mode default
 ├── vite.config.js
-├── tailwind.config.js          # darkMode: 'class', neon-pink / neon-purple tokens
+├── tailwind.config.js             # darkMode: 'class', accent token definitions
 ├── src/
-│   ├── main.jsx                # BrowserRouter wrapper
-│   ├── App.jsx                 # ThemeProvider + route definitions
-│   ├── index.css               # Tailwind directives + global utility classes
+│   ├── main.jsx                   # BrowserRouter wrapper
+│   ├── App.jsx                    # ThemeProvider + route definitions (/, /analysis, /graph)
+│   ├── index.css                  # Tailwind directives + global utility classes
 │   ├── context/
-│   │   └── ThemeContext.jsx    # Dark state, toggle(), syncs to <html> class
+│   │   └── ThemeContext.jsx       # dark state + toggle(), syncs to <html> class
 │   ├── components/
-│   │   └── Navbar.jsx          # Reusable navbar with toggle button
+│   │   └── Navbar.jsx             # Reusable navbar
 │   ├── api/
-│   │   ├── client.js           # Axios instance — base URL from VITE_API_URL
-│   │   └── index.js            # All API functions (analyzeRepo, sendChat, etc.)
+│   │   ├── client.js              # Axios instance — base URL from VITE_API_URL
+│   │   └── index.js               # All API functions
 │   └── pages/
-│       ├── Home.jsx            # Landing page: URL input + feature selector
-│       └── Analysis.jsx        # Results grid + sliding chat panel
+│       ├── Home.jsx               # Mode toggle + GitHub / Local forms
+│       ├── Analysis.jsx           # Summary + Workflow cards + Chat panel
+│       └── Graph.jsx              # React Flow canvas + Explain panel
 ```
-
----
-
-## Theme System
-
-Dark mode uses Tailwind's `class` strategy:
-
-- `<html class="dark">` set in `index.html` so dark is the default on first load
-- `ThemeContext` holds a `dark` boolean in React state
-- Toggle calls `document.documentElement.classList.toggle('dark', dark)`
-- All components use `dark:` Tailwind variants
-
-**Custom color tokens (in `tailwind.config.js`):**
-
-| Token | Hex | Used for |
-|---|---|---|
-| `neon-pink` | `#e879f9` | Active states, borders, chat bubbles, CTA buttons |
-| `neon-purple` | `#a855f7` | Code blocks, workflow badges, secondary accents |
-
-**Global CSS classes (in `index.css`):**
-
-| Class | Effect |
-|---|---|
-| `.neon-text` | Pink → purple gradient on text |
-| `.neon-btn` | Pink → purple gradient background |
-| `.neon-glow` | Soft box-shadow glow for selected elements |
-| `.neon-border` | Focus-within glow on input containers |
 
 ---
 
@@ -124,14 +112,41 @@ Dark mode uses Tailwind's `class` strategy:
 All calls go through `src/api/index.js`:
 
 ```js
+// GitHub repo analysis
 analyzeRepo(repo_url)                           // POST /api/analyze
 getSummary(repo_url)                            // POST /api/summary
 getWorkflow(repo_url)                           // POST /api/workflow
 sendChat(repo_url, messages)                    // POST /api/chat
 generateDoc(repo_url, doc_type, custom_prompt)  // POST /api/generate-doc
+
+// Local directory graph
+scanDirectory(path)                             // POST /api/scan
+explainFile(path, content)                      // POST /api/explain
 ```
 
-The axios client has a **120-second timeout** — repo analysis (GitHub fetch + two Claude calls) can take 30–60 seconds on large repos.
+The axios client has a **120-second timeout** — GitHub analysis (fetch + two Groq calls) can take 30–60 seconds on large repos.
+
+---
+
+## Theme System
+
+Dark mode uses Tailwind's `class` strategy:
+
+- `<html class="dark">` set in `index.html` — dark is the default on first load
+- `ThemeContext` holds a `dark` boolean; toggle syncs to `document.documentElement.classList`
+- Graph nodes read `document.documentElement.classList.contains('dark')` directly since they're outside the React style system
+
+**Custom CSS classes (in `index.css`):**
+
+| Class | Effect |
+|---|---|
+| `.gradient-btn` | Purple → pink gradient background, hover brightness + glow |
+| `.gradient-text` | Purple → pink gradient applied to text |
+| `.surface-card` | White / dark surface with border and shadow |
+| `.input-wrap` | Focus-within ring in accent-purple |
+| `.feature-tab` | Toggleable pill — plain or active (purple tint) |
+
+**Language colours (in `Graph.jsx`):** Python → blue, JS → gold, React → cyan, TypeScript → blue, Go → teal, Rust → red, etc.
 
 ---
 
@@ -141,4 +156,5 @@ The axios client has a **120-second timeout** — repo analysis (GitHub fetch + 
 npm run dev      # Dev server on :5173 with HMR
 npm run build    # Production build → dist/
 npm run preview  # Preview production build locally
+npm run lint     # oxlint
 ```

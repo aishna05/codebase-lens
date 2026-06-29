@@ -1,85 +1,57 @@
 # Codebase Lens
 
-> Paste a GitHub URL. Understand everything.
+> Two ways in. Total understanding.
 
-Codebase Lens is an AI-powered platform that ingests any public GitHub repository and gives you a complete, living understanding of it — what it does, how it works, and why it was built that way. Ask questions in plain English, get precise answers with code references, and export a full technical document in one click.
-
----
-
-## The Problem
-
-Reading a new codebase is slow. You scan file trees, grep for entry points, chase import chains, and still miss the big picture. Documentation is usually outdated, sparse, or missing. Onboarding a new engineer to a large repo can take weeks. Understanding an open-source library deeply enough to contribute can take days.
-
-Codebase Lens solves this in minutes.
+Codebase Lens is an AI-powered tool that helps you understand any codebase — paste a GitHub URL for a full AI-driven analysis, or point it at a local directory to get an interactive dependency graph you can explore and drag around.
 
 ---
 
-## How It Works
+## What It Does
 
-### Step 1 — Paste a GitHub URL
+### Mode 1 — GitHub Repo Analysis
 
-Enter any public GitHub repository URL (e.g. `https://github.com/fastapi/fastapi`). No setup, no cloning, no config.
+Paste any public GitHub URL. The backend fetches every relevant source file, feeds them to Groq (Llama 3.3 70B), and returns:
 
-### Step 2 — The Agent Ingests the Repo
+- **Summary** — what the project does, its tech stack, and key features
+- **Workflow** — architecture pattern, entry points, and how a request flows through the system
+- **Ask / Chat** — Q&A in plain English with exact file and line citations
+- **Doc Generator** — full Markdown documents: onboarding guide, architecture doc, API reference, security audit, or custom
 
-The agent fetches the repository tree and reads every file that matters — source code, configs, package files, CI definitions, and existing docs. It builds a structured understanding of:
+### Mode 2 — Local Directory Scan + Graph
 
-- The tech stack and dependencies
-- The entry points and main execution paths
-- Module/package structure and how components relate
-- Data models and schemas
-- API surfaces (REST, GraphQL, CLI, etc.)
-- Tests and what they cover
-- Infrastructure and deployment setup
+Point it at any local folder. The backend walks the directory tree, parses import/include statements without running the code, and returns a graph. The frontend renders it as an interactive canvas:
 
-### Step 3 — Get an Instant Summary
-
-Without you asking anything, the platform generates:
-
-- A plain-English summary of what the project does
-- A workflow diagram showing how data/requests flow through the system
-- A component map showing how the major pieces fit together
-- Key design decisions and architectural patterns detected
-
-### Step 4 — Ask Anything
-
-A chat interface lets you ask questions about the repo in natural language. The agent answers with code references, line numbers, and explanations.
-
-Examples:
-- "How does authentication work in this project?"
-- "Where is the database schema defined?"
-- "What happens when a user submits the checkout form?"
-- "Which files would I need to touch to add a new API endpoint?"
-- "Are there any obvious security issues?"
-- "Explain the worker queue setup."
-
-### Step 5 — Generate a Full Document
-
-Prompt the agent to produce a complete technical document tailored to your needs. Choose a document type or describe exactly what you want:
-
-- **Onboarding Guide** — for a new engineer joining the team
-- **Architecture Doc** — for a technical design review
-- **API Reference** — auto-generated from the codebase
-- **Security Audit Summary** — potential vulnerabilities and risky patterns
-- **Custom** — describe any document in plain English and the agent writes it
-
-Export as Markdown, PDF, or Notion page.
+- **File nodes** — draggable, colour-coded by language, showing name and lines of code
+- **Dependency edges** — arrows from each file to every file it imports
+- **Click any node** — a side panel slides in with a 3-sentence AI explanation of that file
+- **Dagre auto-layout** — nodes are automatically arranged left-to-right by dependency rank
+- **Minimap + zoom controls** — navigate large repos with ease
 
 ---
 
-## Core Features
+## Supported Languages (Local Scan)
 
-| Feature | Description |
+| Language | Import syntax detected |
 |---|---|
-| Repo Ingestion | Fetches and indexes any public GitHub repo via URL |
-| Auto Summary | Plain-English overview generated on ingest |
-| Workflow Analysis | Traces request/data flow through the codebase |
-| Q&A Chat | Ask anything about the repo, get answers with code citations |
-| Document Generator | Produces full technical docs from a prompt |
-| Multi-file Context | Agent reasons across the entire repo, not just one file |
-| Stack Detection | Automatically identifies languages, frameworks, and tools |
-| Diff Analysis | (Planned) Point to a PR or commit and understand what changed and why |
-| Private Repo Support | (Planned) Connect via GitHub OAuth for private repositories |
+| Python | `import X`, `from X import Y`, relative imports (`from .X import Y`) |
+| JavaScript / JSX | `import X from './Y'`, `require('./Y')` |
+| TypeScript / TSX | Same as JS |
+| C / C++ | `#include "file.h"` |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI (Python) |
+| AI / LLM | Groq — `llama-3.3-70b-versatile` (free tier) |
+| GitHub access | GitHub REST API |
+| Frontend | React 19, Vite 8 |
+| Graph visualisation | React Flow (`@xyflow/react`), Dagre layout (`@dagrejs/dagre`) |
+| Styling | Tailwind CSS v3 |
+| HTTP client | Axios |
+| Cache | In-memory TTL (1 hr) |
 
 ---
 
@@ -88,110 +60,112 @@ Export as Markdown, PDF, or Notion page.
 ```
 User
  |
- | GitHub URL
- v
-[Frontend — React/Next.js]
+ |── GitHub URL ──► [Frontend] ──► POST /api/analyze
+ |                                      |
+ |                                      ├─ GitHub API → fetch files
+ |                                      ├─ Groq → summary JSON
+ |                                      └─ Groq → workflow JSON
  |
- | API call
- v
-[Backend — FastAPI]
- |
- |-- Repo Fetcher ---------> GitHub API / git clone
- |                               |
- |                               | raw files
- |                               v
- |-- Indexer / Chunker -----> splits files into semantic chunks
- |                               |
- |                               v
- |-- Vector Store ----------> embeddings (pgvector / Pinecone)
- |
- |-- Agent (Groq — Llama 3.3 70B) -> reads relevant chunks + full context
- |       |
- |       |-- /summarize     -> instant project overview
- |       |-- /chat          -> Q&A with code citations
- |       |-- /generate-doc  -> full document output
- |
- v
-[Response to User]
+ |── Local path ──► [Frontend] ──► POST /api/scan
+                                        |
+                                        ├─ os.walk → parse imports
+                                        ├─ count LoC per file
+                                        └─ return nodes + edges JSON
+                                              |
+                                              ▼
+                                    React Flow canvas
+                                    (dagre layout, click-to-explain)
+                                              |
+                                    node click ──► POST /api/explain
+                                                        |
+                                                        └─ Groq → 3-sentence summary
 ```
 
-### Key Components
+---
 
-**Repo Fetcher**
-Uses the GitHub API to fetch the file tree and download file contents. Respects rate limits and skips binary files, build artifacts, and lock files. For large repos, prioritizes high-signal files (entry points, models, routers, configs).
+## Project Structure
 
-**Indexer / Chunker**
-Splits source files into semantically meaningful chunks — by function, class, or logical block rather than fixed token windows. Attaches metadata: file path, language, line range.
-
-**Vector Store**
-Embeds chunks and stores them for retrieval. On each query, the most relevant chunks are fetched and passed to the agent as context.
-
-**Agent (Groq — Llama 3.3 70B)**
-The core reasoning layer. Given retrieved context and the full repo structure, it answers questions, traces workflows, and writes documents. Uses tool calls to fetch additional file content on demand when a question requires deeper context than what retrieval surfaces.
-
-**Document Generator**
-Takes a document-type prompt and orchestrates a multi-step generation: outline first, then section by section, stitching into a coherent final document. Includes auto-linked code references throughout.
+```
+codebase-lens/
+├── backend/
+│   ├── main.py              # FastAPI app, CORS, router registration
+│   ├── config.py            # Pydantic settings (reads .env)
+│   ├── schemas.py           # All request/response models
+│   ├── requirements.txt
+│   ├── .env.example
+│   ├── routers/
+│   │   ├── analyze.py       # POST /api/analyze (GitHub repo)
+│   │   ├── summary.py       # POST /api/summary
+│   │   ├── workflow.py      # POST /api/workflow
+│   │   ├── chat.py          # POST /api/chat
+│   │   ├── docs.py          # POST /api/generate-doc
+│   │   ├── scan.py          # POST /api/scan (local directory)
+│   │   └── explain.py       # POST /api/explain (click-to-explain)
+│   └── services/
+│       ├── github.py        # GitHub API + file fetching
+│       ├── claude.py        # All Groq/Llama prompts
+│       └── cache.py         # In-memory TTL cache
+└── frontend/
+    ├── src/
+    │   ├── App.jsx           # Routes: / /analysis /graph
+    │   ├── context/
+    │   │   └── ThemeContext.jsx
+    │   ├── api/
+    │   │   ├── client.js     # Axios instance
+    │   │   └── index.js      # All API calls
+    │   └── pages/
+    │       ├── Home.jsx      # Mode toggle: GitHub / Local Scan
+    │       ├── Analysis.jsx  # Summary + Workflow cards + Chat panel
+    │       └── Graph.jsx     # React Flow canvas + Explain panel
+    └── ...
+```
 
 ---
 
-## Tech Stack (Planned)
+## Getting Started
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js, TailwindCSS |
-| Backend | FastAPI (Python) |
-| Agent | Groq (llama-3.3-70b-versatile, free tier) |
-| Embeddings | OpenAI embeddings (planned) |
-| Vector Store | pgvector (PostgreSQL) |
-| Repo Access | GitHub REST API |
-| Auth | GitHub OAuth |
-| Export | Markdown, PDF (via Pandoc) |
-| Deployment | Docker, Railway / Render |
-
----
-
-<!-- ## Roadmap
-
-**Phase 1 — Core**
-- [ ] GitHub URL ingestion (public repos)
-- [ ] Instant repo summary
-- [ ] Q&A chat with code citations
-- [ ] Basic document generation (onboarding, architecture)
-
-**Phase 2 — Depth**
-- [ ] Workflow / data-flow diagram generation
-- [ ] Diff analysis (PR / commit understanding)
-- [ ] Security audit document type
-- [ ] Export to PDF and Notion
-
-**Phase 3 — Scale**
-- [ ] Private repo support via GitHub OAuth
-- [ ] Saved sessions (revisit a repo without re-ingesting)
-- [ ] Team workspaces (shared Q&A history, docs)
-- [ ] Webhook integration (auto-update on push) -->
-
----
-
-## Getting Started (Development)
-
-> Setup instructions will be added as the stack is built out.
+**Prerequisites:** Python 3.11+, Node.js 18+, a free [Groq API key](https://console.groq.com).
 
 ```bash
-# Clone the repo
 git clone https://github.com/aishna05/codebase-lens.git
 cd codebase-lens
 
 # Backend
 cd backend
-cp .env.example .env   # fill in GROQ_API_KEY, GITHUB_TOKEN
+cp .env.example .env        # add GROQ_API_KEY (and optionally GITHUB_TOKEN)
 pip install -r requirements.txt
-uvicorn main:app --reload
+uvicorn backend.main:app --reload --port 8001
 
-# Frontend
+# Frontend (separate terminal)
 cd frontend
 npm install
-npm run dev
+npm run dev                  # http://localhost:5173
 ```
+
+### GitHub mode
+
+1. Open `http://localhost:5173`
+2. Select "GitHub Repo"
+3. Paste any public GitHub URL — e.g. `https://github.com/fastapi/fastapi`
+4. Choose Summary / Workflow / Chat as needed, click **Analyze**
+
+### Local scan mode
+
+1. Open `http://localhost:5173`
+2. Select "Local Scan"
+3. Paste an absolute path — e.g. `C:\Users\you\projects\my-app`
+4. Click **Scan & Visualise**
+5. Drag nodes, zoom with scroll, click any file node to get an AI explanation
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `GROQ_API_KEY` | Yes | Groq key — free at [console.groq.com](https://console.groq.com) |
+| `GITHUB_TOKEN` | No | Raises GitHub rate limit from 60 to 5,000 req/hr |
+| `CORS_ORIGINS` | No | JSON array of allowed origins (default: localhost:5173 + :3000) |
 
 ---
 
