@@ -27,3 +27,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Personal notes — never commit
+INTERVIEW_PREP.md

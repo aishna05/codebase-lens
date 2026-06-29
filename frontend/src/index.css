@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Light theme (default) ─────────────────────────────────────────────────── */
+:root {
+  --app-bg:      #FAFAFA;
+  --surface:     #FFFFFF;
+  --border-line: #E4E4E7;
+  --text-primary:   #18181B;
+  --text-secondary: #71717A;
+  --accent-purple:  #7C3AED;
+  --accent-pink:    #DB2777;
+  --active-bg:   #F3E8FF;
+  --active-text: #7C3AED;
+  --active-border: rgba(124, 58, 237, 0.4);
+  --gradient-start: #7C3AED;
+  --gradient-end:   #DB2777;
+  --btn-glow: rgba(219, 39, 119, 0.18);
+  --surface-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --input-focus-ring: rgba(124, 58, 237, 0.15);
+}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────────── */
+.dark {
+  --app-bg:      #09090B;
+  --surface:     #18181B;
+  --border-line: #27272A;
+  --text-primary:   #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --accent-purple:  #8B5CF6;
+  --accent-pink:    #EC4899;
+  --active-bg:   rgba(76, 29, 149, 0.2);
+  --active-text: #8B5CF6;
+  --active-border: rgba(139, 92, 246, 0.5);
+  --gradient-start: #8B5CF6;
+  --gradient-end:   #EC4899;
+  --btn-glow: rgba(236, 72, 153, 0.22);
+  --surface-shadow: none;
+  --input-focus-ring: rgba(139, 92, 246, 0.15);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--app-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── Gradient button ─────────────────────────────────────────────────────────  */
+.gradient-btn {
+  background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: box-shadow 0.2s, filter 0.15s;
+}
+.gradient-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 20px var(--btn-glow), 0 0 0 1px transparent;
+}
+.gradient-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Gradient text ───────────────────────────────────────────────────────────  */
+.gradient-text {
+  background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Surface card ────────────────────────────────────────────────────────────  */
+.surface-card {
+  background: var(--surface);
+  border: 1px solid var(--border-line);
+  box-shadow: var(--surface-shadow);
+}
+
+/* ── Input focus ring ────────────────────────────────────────────────────────  */
+.input-wrap:focus-within {
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 0 3px var(--input-focus-ring);
+}
+
+/* ── Feature tab ─────────────────────────────────────────────────────────────  */
+.feature-tab {
+  border: 1px solid var(--border-line);
+  color: var(--text-secondary);
+  background: transparent;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.feature-tab:hover {
+  border-color: var(--accent-purple);
+  color: var(--text-primary);
+}
+.feature-tab.active {
+  background: var(--active-bg);
+  border-color: var(--active-border);
+  color: var(--active-text);
+  font-weight: 500;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────────  */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-line); border-radius: 4px; }
+
+/* ── Code ────────────────────────────────────────────────────────────────────  */
+code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }

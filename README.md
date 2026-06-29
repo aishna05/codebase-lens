@@ -105,7 +105,7 @@ User
  |                               v
  |-- Vector Store ----------> embeddings (pgvector / Pinecone)
  |
- |-- Agent (Claude) --------> reads relevant chunks + full context
+ |-- Agent (Groq — Llama 3.3 70B) -> reads relevant chunks + full context
  |       |
  |       |-- /summarize     -> instant project overview
  |       |-- /chat          -> Q&A with code citations
@@ -126,7 +126,7 @@ Splits source files into semantically meaningful chunks — by function, class, 
 **Vector Store**
 Embeds chunks and stores them for retrieval. On each query, the most relevant chunks are fetched and passed to the agent as context.
 
-**Agent (Claude)**
+**Agent (Groq — Llama 3.3 70B)**
 The core reasoning layer. Given retrieved context and the full repo structure, it answers questions, traces workflows, and writes documents. Uses tool calls to fetch additional file content on demand when a question requires deeper context than what retrieval surfaces.
 
 **Document Generator**
@@ -140,8 +140,8 @@ Takes a document-type prompt and orchestrates a multi-step generation: outline f
 |---|---|
 | Frontend | Next.js, TailwindCSS |
 | Backend | FastAPI (Python) |
-| Agent | Claude (Anthropic API) |
-| Embeddings | Claude / OpenAI embeddings |
+| Agent | Groq (llama-3.3-70b-versatile, free tier) |
+| Embeddings | OpenAI embeddings (planned) |
 | Vector Store | pgvector (PostgreSQL) |
 | Repo Access | GitHub REST API |
 | Auth | GitHub OAuth |
@@ -183,7 +183,7 @@ cd codebase-lens
 
 # Backend
 cd backend
-cp .env.example .env   # fill in ANTHROPIC_API_KEY, GITHUB_TOKEN
+cp .env.example .env   # fill in GROQ_API_KEY, GITHUB_TOKEN
 pip install -r requirements.txt
 uvicorn main:app --reload
 
