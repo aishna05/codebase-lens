@@ -1,6 +1,6 @@
 import json
 from groq import Groq
-from ..schemas import SummaryResult, WorkflowResult, Component, TechItem, ChatResponse, DocResponse
+from ..schemas import SummaryResult, WorkflowResult, Component, TechItem, ChatResponse, DocResponse, ExplainResponse
 
 MODEL = "llama-3.3-70b-versatile"   # 128k context window
 MAX_TOKENS = 4096
@@ -141,3 +141,16 @@ Do not pad with generic advice — everything must be grounded in what is actual
         user = f"Repository: {repo}\nTask: {prompts[doc_type]}\n\nSource files:\n{_format_files(files)}"
         content = self._call(system, user)
         return DocResponse(doc_type=doc_type, content=content)
+
+    # ── File explanation ─────────────────────────────────────────────────────
+
+    def explain_file(self, path: str, content: str) -> ExplainResponse:
+        system = (
+            "You are a senior software engineer. Given a source file, explain what it does "
+            "in exactly 3 plain-English sentences. Be specific to the actual code — name "
+            "functions, classes, or patterns you see. No markdown, no code blocks, no bullet "
+            "points. Just three sentences."
+        )
+        user = f"File: {path}\n\n```\n{content[:8000]}\n```"
+        result = self._call(system, user)
+        return ExplainResponse(explanation=result.strip())

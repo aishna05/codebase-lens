@@ -14,3 +14,9 @@ export const sendChat = (repo_url, messages) =>
 
 export const generateDoc = (repo_url, doc_type, custom_prompt = '') =>
   client.post('/api/generate-doc', { repo_url, doc_type, custom_prompt }).then(r => r.data)
+
+export const scanDirectory = (path) =>
+  client.post('/api/scan', { path }).then(r => r.data)
+
+export const explainFile = (path, content) =>
+  client.post('/api/explain', { path, content }).then(r => r.data)

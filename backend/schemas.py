@@ -107,3 +107,48 @@ class ChatResponse(BaseModel):
 class DocResponse(BaseModel):
     doc_type: str
     content: str   # markdown
+
+
+# ── Local scan ────────────────────────────────────────────────────────────────
+
+class ScanRequest(BaseModel):
+    path: str
+
+    @field_validator("path")
+    @classmethod
+    def validate_path(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("path cannot be empty")
+        return v
+
+
+class FileNode(BaseModel):
+    id: str          # relative path from root (forward slashes)
+    label: str       # filename only
+    path: str        # relative path
+    language: str
+    loc: int
+    size_bytes: int
+
+
+class DependencyEdge(BaseModel):
+    id: str          # "source__target"
+    source: str
+    target: str
+
+
+class ScanResult(BaseModel):
+    nodes: list[FileNode]
+    edges: list[DependencyEdge]
+    root: str
+    file_count: int
+
+
+class ExplainRequest(BaseModel):
+    path: str
+    content: str
+
+
+class ExplainResponse(BaseModel):
+    explanation: str

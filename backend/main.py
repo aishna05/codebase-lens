@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
-from .routers import analyze, summary, workflow, chat, docs
+from .routers import analyze, summary, workflow, chat, docs, scan, explain
 
 settings = get_settings()
 
@@ -24,6 +24,8 @@ app.include_router(summary.router, prefix="/api")
 app.include_router(workflow.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 app.include_router(docs.router, prefix="/api")
+app.include_router(scan.router, prefix="/api")
+app.include_router(explain.router, prefix="/api")
 
 
 @app.get("/health")
